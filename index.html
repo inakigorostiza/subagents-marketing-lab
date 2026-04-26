@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Subagents — Claude Code Marketing Lab</title>
+  <meta name="description" content="A quick guide for marketing students on working with subagents in VS Code. Learn to create reusable marketing specialists without needing tmux or split panes." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          #FFFFFF;
+      --bg-soft:     #F5F5F5;
+      --ink:         #0A0A0A;
+      --ink-2:       #1F1F1F;
+      --ink-3:       #444444;
+      --ink-4:       #737373;
+      --ink-5:       #A3A3A3;
+      --accent:      #3498db;
+      --accent-2:    #2980b9;
+      --accent-soft: #E6EBF5;
+      --line:        #E5E5E5;
+      --success:     #15803D;
+      --warning:     #B45309;
+      --radius-sm:   4px;
+      --trans:       .2s cubic-bezier(.4, 0, .2, 1);
+      --font-sans:   "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif:  "Instrument Serif", Georgia, "Times New Roman", serif;
+      --font-mono:   "SF Mono", Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg);
+      color: var(--ink-2);
+      line-height: 1.55;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color var(--trans); }
+    a:hover { color: var(--accent-2); }
+    code { font-family: var(--font-mono); font-size: .88em; background: var(--bg-soft); padding: .12em .42em; border-radius: 3px; color: var(--ink); font-weight: 500; }
+
+    /* Layout */
+    .layout { display: grid; grid-template-columns: 300px 1fr; min-height: 100vh; }
+    .nav {
+      position: sticky; top: 0;
+      height: 100vh;
+      background: var(--bg);
+      border-right: 1px solid var(--line);
+      padding: 2.5rem 1.75rem;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .nav__brand {
+      padding-bottom: 1.5rem;
+      margin-bottom: 1.75rem;
+      border-bottom: 1px solid var(--line);
+    }
+    .nav__brand-title {
+      font-size: .85rem;
+      font-weight: 800;
+      color: var(--ink);
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      display: block;
+    }
+    .nav__brand-sub {
+      font-size: .65rem;
+      color: var(--ink-4);
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      margin-top: .3rem;
+      font-weight: 600;
+    }
+    .nav__label {
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .2em;
+      color: var(--ink-5);
+      text-transform: uppercase;
+      margin: 1.75rem 0 .75rem;
+    }
+    .nav__list { list-style: none; display: flex; flex-direction: column; gap: .05rem; }
+    .nav__item a {
+      display: flex;
+      align-items: baseline;
+      gap: .85rem;
+      padding: .5rem .6rem;
+      color: var(--ink-3);
+      font-size: .82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: all var(--trans);
+    }
+    .nav__item a:hover { color: var(--ink); background: var(--bg-soft); }
+    .nav__num {
+      font-family: var(--font-mono);
+      font-size: .7rem;
+      color: var(--ink-5);
+      min-width: 1.6rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    main { padding: 0; }
+    .section {
+      padding: 6rem 4rem;
+      max-width: 1080px;
+      margin: 0 auto;
+      border-top: 1px solid var(--line);
+    }
+    .section:first-of-type { border-top: none; }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .nav { position: static; height: auto; }
+      .section { padding: 3.5rem 1.5rem; }
+    }
+
+    /* Hero */
+    .hero { padding: 6rem 4rem 4rem; max-width: 1080px; margin: 0 auto; }
+    .hero__title {
+      font-size: clamp(2.4rem, 5.5vw, 4.5rem);
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1.02;
+      letter-spacing: -.035em;
+      margin-bottom: 1.75rem;
+    }
+    .hero__lead {
+      font-size: 1.15rem;
+      color: var(--ink-3);
+      max-width: 680px;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 700px) { .hero { padding: 4rem 1.5rem 2rem; } }
+
+    /* Section header */
+    .sec-header {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+      align-items: start;
+    }
+    @media (max-width: 700px) { .sec-header { grid-template-columns: 1fr; gap: 1rem; } }
+    .sec-num {
+      font-family: var(--font-serif);
+      font-size: 2.75rem;
+      color: var(--accent);
+      line-height: 1;
+      font-style: italic;
+    }
+    .sec-eyebrow {
+      display: inline-block;
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+    .sec-title {
+      font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+      font-weight: 900;
+      color: var(--ink);
+      line-height: 1.05;
+      letter-spacing: -.025em;
+      margin-bottom: 1rem;
+    }
+    .sec-lead {
+      color: var(--ink-3);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      max-width: 720px;
+    }
+
+    .h-sub {
+      font-size: .78rem;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      margin: 2.5rem 0 1rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid var(--line);
+    }
+
+    /* Callouts */
+    .callout {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 1rem;
+      padding: 1.4rem 1.6rem;
+      background: var(--bg-soft);
+      margin: 1.5rem 0;
+      border-left: 3px solid var(--ink);
+    }
+    .callout__icon { font-size: 1.15rem; }
+    .callout__body h4 {
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: .5rem;
+      color: var(--ink);
+    }
+    .callout__body p, .callout__body li {
+      margin: 0 0 .4rem;
+      color: var(--ink-2);
+      font-size: .96rem;
+      line-height: 1.6;
+    }
+    .callout__body ul, .callout__body ol { margin: .5rem 0 0 1.2rem; }
+    .callout--tip  { border-left-color: var(--accent); }
+    .callout--tip h4  { color: var(--accent); }
+
+    /* Footer */
+    .footer {
+      padding: 3rem 4rem;
+      max-width: 1080px;
+      margin: 0 auto;
+      border-top: 1px solid var(--line);
+      color: var(--ink-4);
+      font-size: .8rem;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    pre {
+      background: #1a1a1a;
+      color: #e8e8e8;
+      padding: 1.5rem;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      line-height: 1.5;
+    }
+    pre code { background: none; color: inherit; padding: 0; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+    th, td { padding: 0.75rem; text-align: left; border: 1px solid var(--line); }
+    th { background: var(--bg-soft); font-weight: 700; color: var(--ink); }
+    tr:nth-child(even) { background: var(--bg-soft); }
+
+    p { margin-bottom: 1rem; }
+    ul, ol { margin: 1rem 0 1rem 1.5rem; }
+    li { margin: 0.5rem 0; }
+
+    .good-news {
+      background: #E8F5E9;
+      border-left: 4px solid var(--success);
+      padding: 1.5rem;
+      margin: 2rem 0;
+      border-radius: 3px;
+    }
+    .good-news p { margin: 0; }
+    .good-news strong { color: var(--success); }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="nav">
+    <div class="nav__brand">
+      <span class="nav__brand-title">LAB · SUBAGENTS</span>
+      <span class="nav__brand-sub">VS Code Guide</span>
+    </div>
+
+    <div class="nav__label">Guide</div>
+    <ul class="nav__list">
+      <li class="nav__item"><a href="#intro"><span class="nav__num">A</span>What are Subagents?</a></li>
+      <li class="nav__item"><a href="#part1"><span class="nav__num">01</span>Set up VS Code</a></li>
+      <li class="nav__item"><a href="#part2"><span class="nav__num">02</span>Save Location</a></li>
+      <li class="nav__item"><a href="#part3"><span class="nav__num">03</span>Create First Agent</a></li>
+      <li class="nav__item"><a href="#part4"><span class="nav__num">04</span>Manual Creation</a></li>
+      <li class="nav__item"><a href="#part5"><span class="nav__num">05</span>Invoke Subagents</a></li>
+      <li class="nav__item"><a href="#part6"><span class="nav__num">06</span>Complete Workflow</a></li>
+      <li class="nav__item"><a href="#part7"><span class="nav__num">07</span>Tips & Patterns</a></li>
+      <li class="nav__item"><a href="#reference"><span class="nav__num">08</span>Quick Reference</a></li>
+    </ul>
+  </aside>
+
+  <main>
+
+    <!-- HERO -->
+    <div class="hero">
+      <h1 class="hero__title">Subagents</h1>
+      <p class="hero__lead">Working with Subagents in VS Code — A Quick Guide for Marketing Students</p>
+    </div>
+
+    <!-- INTRO SECTION -->
+    <section class="section" id="intro">
+      <div class="good-news">
+        <p><strong>Good news —</strong> subagents work perfectly inside VS Code's integrated terminal. Unlike Agent Teams, they don't need tmux or split panes because they all run within a single Claude Code session. The output stays in one terminal; subagents just spin up in their own context windows behind the scenes and return summaries when done.</p>
+        <p style="margin-top: 1rem;">This actually plays well to VS Code's strengths: the subagent definitions are markdown files you can edit right in the editor, and you can see them in the file tree.</p>
+      </div>
+
+      <h3 class="h-sub">What are subagents?</h3>
+      <p>Subagents are specialized Claude assistants that handle specific tasks. Each one runs in its own context window with a custom system prompt, specific tool access, and independent permissions. When Claude encounters a task that matches a subagent's description, it delegates to that subagent, which works independently and returns just the summary — keeping your main conversation clean.</p>
+      <p>For marketing work, think of them as named specialists you can summon over and over: a copywriter that always writes in your brand voice, a researcher that always investigates the same way, a critic that always pushes back on weak positioning.</p>
+
+      <h3 class="h-sub">Subagents vs Agent Teams — quick reminder</h3>
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Subagents</th>
+            <th>Agent Teams</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Where they run</strong></td>
+            <td>Inside one Claude Code session</td>
+            <td>Across multiple sessions in tmux panes</td>
+          </tr>
+          <tr>
+            <td><strong>Communication</strong></td>
+            <td>Report back to the main agent only</td>
+            <td>Teammates message each other directly</td>
+          </tr>
+          <tr>
+            <td><strong>Coordination</strong></td>
+            <td>Main agent manages all work</td>
+            <td>Shared task list with self-coordination</td>
+          </tr>
+          <tr>
+            <td><strong>Best for</strong></td>
+            <td>Reusable specialists for focused tasks</td>
+            <td>Complex collaborative campaigns</td>
+          </tr>
+          <tr>
+            <td><strong>Token cost</strong></td>
+            <td>Lower</td>
+            <td>Higher</td>
+          </tr>
+          <tr>
+            <td><strong>Works in VS Code?</strong></td>
+            <td>Yes — integrated terminal is fine</td>
+            <td>No — needs tmux, requires external terminal</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top: 1.5rem;">For this guide, we'll create reusable marketing specialists you can call on across projects.</p>
+    </section>
+
+    <!-- PART 1 -->
+    <section class="section" id="part1">
+      <div class="sec-header">
+        <div class="sec-num">1</div>
+        <div>
+          <span class="sec-eyebrow">Getting Ready</span>
+          <h2 class="sec-title">Set up VS Code</h2>
+        </div>
+      </div>
+
+      <h3 class="h-sub">Step 1 — Open VS Code in your project folder</h3>
+      <p>Open VS Code, then File → Open Folder, and select your project. For this exercise, create a new folder for the IE-Nergy work:</p>
+      <pre><code>~/Documents/ienergy-marketing</code></pre>
+
+      <h3 class="h-sub">Step 2 — Open the integrated terminal</h3>
+      <p>Use the menu <strong>Terminal → New Terminal</strong>, or press <code>Ctrl+`</code> (backtick) on Windows/Linux or <code>Cmd+`</code> on Mac. The terminal opens at the bottom of VS Code.</p>
+
+      <h3 class="h-sub">Step 3 — Verify Claude Code is installed</h3>
+      <p>In the terminal:</p>
+      <pre><code>claude --version</code></pre>
+      <p>You should see 2.1.32 or later. If not, update:</p>
+      <pre><code>npm install -g @anthropic-ai/claude-code</code></pre>
+    </section>
+
+    <!-- PART 2 -->
+    <section class="section" id="part2">
+      <div class="sec-header">
+        <div class="sec-num">2</div>
+        <div>
+          <span class="sec-eyebrow">Organization</span>
+          <h2 class="sec-title">Choose Where to Save Subagents</h2>
+        </div>
+      </div>
+
+      <p>Subagents are markdown files with YAML frontmatter. Where you save them determines who can use them:</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Scope</th>
+            <th>When to use</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>.claude/agents/</code> (in your project)</td>
+            <td>This project only</td>
+            <td>Subagents specific to one campaign or client</td>
+          </tr>
+          <tr>
+            <td><code>~/.claude/agents/</code> (your home directory)</td>
+            <td>All your projects</td>
+            <td>Personal specialists you'll reuse everywhere</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top: 1.5rem;">For class, use <strong>project-level</strong> (<code>.claude/agents/</code>) so each student's work stays self-contained and can be checked into git if needed.</p>
+    </section>
+
+    <!-- PART 3 -->
+    <section class="section" id="part3">
+      <div class="sec-header">
+        <div class="sec-num">3</div>
+        <div>
+          <span class="sec-eyebrow">Interactive Method</span>
+          <h2 class="sec-title">Create Your First Subagent (the Easy Way)</h2>
+        </div>
+      </div>
+
+      <p>The simplest method is the built-in <code>/agents</code> command, which walks you through creation interactively.</p>
+
+      <h3 class="h-sub">Step 1 — Launch Claude Code</h3>
+      <p>In the VS Code terminal:</p>
+      <pre><code>claude</code></pre>
+
+      <h3 class="h-sub">Step 2 — Open the agents interface</h3>
+      <p>Once Claude Code is running, type:</p>
+      <pre><code>/agents</code></pre>
+      <p>This opens a tabbed interface for managing subagents.</p>
+
+      <h3 class="h-sub">Step 3 — Create a new agent</h3>
+      <ul>
+        <li>Switch to the <strong>Library</strong> tab</li>
+        <li>Select <strong>Create new agent</strong></li>
+        <li>Choose <strong>Project</strong> (saves to <code>.claude/agents/</code> in your current folder)</li>
+      </ul>
+
+      <h3 class="h-sub">Step 4 — Generate with Claude</h3>
+      <p>Select <strong>Generate with Claude</strong>. When prompted, describe the subagent you want. For our IE-Nergy work, paste:</p>
+      <pre><code>A senior brand strategist subagent for challenger consumer brands. It
+should develop sharp positioning, key messages, and channel strategy.
+It must be skeptical of generic claims like "premium" or "natural" and
+always push for ownable, defensible angles. It should explicitly state
+what NOT to say and ground every recommendation in audience insight.</code></pre>
+
+      <p>Claude generates the identifier, description, and full system prompt for you.</p>
+
+      <h3 class="h-sub">Step 5 — Select tools</h3>
+      <p>For a strategist that should think and write but not execute code, deselect everything except <strong>Read-only tools</strong> and <strong>Write</strong> (so it can save its strategy.md output).</p>
+
+      <h3 class="h-sub">Step 6 — Select model</h3>
+      <p>Pick <strong>Sonnet</strong> for a good balance of capability and speed. For very simple subagents, Haiku is faster and cheaper. For deep reasoning tasks, Opus.</p>
+
+      <h3 class="h-sub">Step 7 — Choose a color</h3>
+      <p>Pick a color so you can spot the strategist easily in the UI when it's running. Blue or purple work well.</p>
+
+      <h3 class="h-sub">Step 8 — Save</h3>
+      <p>Press <code>s</code> or <code>Enter</code> to save. The file is created at:</p>
+      <pre><code>.claude/agents/strategist.md</code></pre>
+      <p>You'll see it appear in your VS Code file tree immediately.</p>
+
+      <h3 class="h-sub">Step 9 — Try it out</h3>
+      <p>Back in Claude Code, ask:</p>
+      <pre><code>Use the strategist subagent to develop positioning for IE-Nergy, a new
+energy drink targeting university students who want clean focus, not
+aggressive stimulation. Save the output to strategy.md.</code></pre>
+      <p>Claude delegates to your subagent, which produces a strategy document and saves it.</p>
+    </section>
+
+    <!-- PART 4 -->
+    <section class="section" id="part4">
+      <div class="sec-header">
+        <div class="sec-num">4</div>
+        <div>
+          <span class="sec-eyebrow">Manual Method</span>
+          <h2 class="sec-title">Create Subagents in the Editor</h2>
+        </div>
+      </div>
+
+      <p>Once you understand the structure, creating subagents directly in VS Code is faster. Each subagent is a markdown file with two parts: YAML frontmatter (the configuration) and a markdown body (the system prompt).</p>
+
+      <h3 class="h-sub">Step 1 — Create the agents folder</h3>
+      <p>In the VS Code terminal, or right-click in the file tree:</p>
+      <pre><code>mkdir -p .claude/agents</code></pre>
+
+      <h3 class="h-sub">Step 2 — Create a copywriter subagent</h3>
+      <p>In VS Code, create a new file: <code>.claude/agents/copywriter.md</code></p>
+      <p>Paste this:</p>
+      <pre><code>---
+name: copywriter
+description: Direct-response copywriter for digitally-native consumer brands aimed at Gen Z and young Millennials. Use when drafting Instagram, TikTok, email, or search ad copy.
+tools: Read, Write
+model: sonnet
+color: orange
+---
+
+You are a direct-response copywriter who has written launch campaigns
+for digitally-native consumer brands aimed at Gen Z and young
+Millennials.
+
+You write in a conversational, specific voice — never corporate, never
+brand-speak. You write differently for Instagram vs TikTok vs email vs
+search. Each channel has its own native rhythm and format.
+
+You hate buzzwords. Words you refuse to use: "elevate," "unlock your
+potential," "fuel your journey," "level up," "crush it," "game-changer,"
+"curated experience."
+
+When invoked:
+1. Ask which channel(s) the copy is for if not specified
+2. Ask for the positioning and key messages — never write blind
+3. Draft tight, specific copy that respects each channel's format
+4. Include character counts and format constraints (e.g., 30-char
+   headlines for Google Ads, 125-word max for Instagram captions)
+5. Provide 2-3 variations when there's room for stylistic choice
+
+For TikTok scripts, include shot direction and on-screen text cues, not
+just dialogue.</code></pre>
+      <p>Save the file.</p>
+
+      <h3 class="h-sub">Step 3 — Create a researcher subagent</h3>
+      <p>Create <code>.claude/agents/researcher.md</code>:</p>
+      <pre><code>---
+name: researcher
+description: Competitive intelligence analyst with marketing background. Use when investigating competitors, identifying positioning gaps, or finding category whitespace.
+tools: Read, Write, WebFetch, WebSearch
+model: sonnet
+color: green
+---
+
+You are a competitive intelligence analyst with a marketing background.
+
+You investigate not just what competitors say, but what they DON'T say —
+looking for whitespace and positioning gaps the brand could credibly
+own.
+
+You report findings as actionable insight, not feature comparison
+tables. You're comfortable making confident judgments from limited data.
+
+When invoked:
+1. Identify 3-5 most relevant competitors (direct + adjacent)
+2. For each, summarize their core positioning in ONE sentence
+3. Identify 2-3 positioning gaps the brand could own
+4. Flag at least one risk or counter-argument for each gap
+5. Save findings to research.md
+
+Focus on insight over information. A short, sharp report beats a long
+exhaustive one.</code></pre>
+
+      <h3 class="h-sub">Step 4 — Restart Claude Code</h3>
+      <p>Subagents are loaded at session start. Exit (<code>/exit</code>) and relaunch:</p>
+      <pre><code>claude</code></pre>
+      <p>(Alternatively, type <code>/agents</code> and your new ones will be picked up.)</p>
+
+      <h3 class="h-sub">Step 5 — Verify they're registered</h3>
+      <p>In Claude Code:</p>
+      <pre><code>/agents</code></pre>
+      <p>You should see strategist, copywriter, and researcher in the Library tab under "Project."</p>
+    </section>
+
+    <!-- PART 5 -->
+    <section class="section" id="part5">
+      <div class="sec-header">
+        <div class="sec-num">5</div>
+        <div>
+          <span class="sec-eyebrow">Execution</span>
+          <h2 class="sec-title">Invoke Your Subagents</h2>
+        </div>
+      </div>
+
+      <p>You have three ways to call a subagent.</p>
+
+      <h3 class="h-sub">Method 1 — Natural language</h3>
+      <p>Just name the subagent in your prompt:</p>
+      <pre><code>Use the researcher subagent to investigate Red Bull, Monster, and
+Celsius. Then use the strategist subagent to develop IE-Nergy's
+positioning based on the research. Finally use the copywriter to
+draft a TikTok script and an Instagram caption.</code></pre>
+      <p>Claude reads your request and invokes each subagent in turn. This is the most natural way to work.</p>
+
+      <h3 class="h-sub">Method 2 — @-mention (more precise)</h3>
+      <p>Type <code>@</code> and pick from the autocomplete:</p>
+      <pre><code>@researcher (agent) investigate the energy drink category for me</code></pre>
+      <p>This guarantees Claude invokes that specific subagent.</p>
+
+      <h3 class="h-sub">Method 3 — Run an entire session as a subagent</h3>
+      <p>Launch Claude Code with a subagent as the main session:</p>
+      <pre><code>claude --agent strategist</code></pre>
+      <p>The whole session takes on the strategist's persona, tools, and model. Useful when you want to spend a focused session entirely in one role.</p>
+    </section>
+
+    <!-- PART 6 -->
+    <section class="section" id="part6">
+      <div class="sec-header">
+        <div class="sec-num">6</div>
+        <div>
+          <span class="sec-eyebrow">End-to-End</span>
+          <h2 class="sec-title">A Complete IE-Nergy Workflow in VS Code</h2>
+        </div>
+      </div>
+
+      <p>Here's an end-to-end example of how subagents work in practice.</p>
+
+      <h3 class="h-sub">Step 1 — Set up the project</h3>
+      <p>In VS Code terminal:</p>
+      <pre><code>mkdir ~/Documents/ienergy-marketing
+cd ~/Documents/ienergy-marketing</code></pre>
+      <p>Open this folder in VS Code (File → Open Folder).</p>
+
+      <h3 class="h-sub">Step 2 — Add the brief</h3>
+      <p>Create <code>brief.md</code> in VS Code with the IE-Nergy brief (product details, audience, channels, etc. — same as in your Agent Teams exercise).</p>
+
+      <h3 class="h-sub">Step 3 — Create your three subagents</h3>
+      <p>Either via <code>/agents</code> command or by creating the three markdown files manually as shown in Part 4.</p>
+
+      <h3 class="h-sub">Step 4 — Run the workflow</h3>
+      <p>In Claude Code, paste:</p>
+      <pre><code>Read brief.md. Then:
+
+1. Use the researcher subagent to analyze 3 competitors (Red Bull,
+   Monster, Celsius) and identify positioning gaps. Save to
+   research.md.
+
+2. Once the researcher is done, use the strategist subagent to
+   develop IE-Nergy's positioning, key messages, channel mix, and
+   explicit "what we won't say." Use research.md as input. Save to
+   strategy.md.
+
+3. Once the strategist is done, use the copywriter subagent to draft
+   one Instagram caption, one TikTok script, one email, and one
+   Google Search ad. Use strategy.md as input. Save to copy.md.
+
+4. After all three subagents finish, produce a final
+   campaign-summary.md tying everything together with your
+   recommendation.</code></pre>
+
+      <p>Claude calls each subagent in sequence. Each one works in its own context window, then returns a summary to the main conversation. The full deliverables get saved to disk where you can open them in VS Code tabs.</p>
+
+      <h3 class="h-sub">Step 5 — Review in VS Code</h3>
+      <p>When the workflow finishes, you'll have four files in your file tree:</p>
+      <ul>
+        <li><code>research.md</code></li>
+        <li><code>strategy.md</code></li>
+        <code>copy.md</code>
+        <li><code>campaign-summary.md</code></li>
+      </ul>
+      <p>Open each in VS Code tabs to review side-by-side. This is where the value is — critique the output, iterate, push the subagents to do better.</p>
+    </section>
+
+    <!-- PART 7 -->
+    <section class="section" id="part7">
+      <div class="sec-header">
+        <div class="sec-num">7</div>
+        <div>
+          <span class="sec-eyebrow">Best Practices</span>
+          <h2 class="sec-title">Tips for Marketing Students</h2>
+        </div>
+      </div>
+
+      <ul>
+        <li><strong>Make your subagents specific.</strong> A "writer" subagent is useless. A "TikTok script writer who specializes in unboxing-style demos for beauty brands" is genuinely useful. Specificity makes them better at their job.</li>
+        <li><strong>Tell them what NOT to do.</strong> The most useful line in the copywriter file above is the buzzword blocklist. Constraints sharpen output for AI just as much as for humans.</li>
+        <li><strong>Use the description field carefully.</strong> Claude decides when to delegate based on the <code>description</code> field. Phrases like "use proactively" or "use when drafting copy" prompt Claude to delegate automatically.</li>
+        <li><strong>Check subagents into git.</strong> When you save them to <code>.claude/agents/</code> in a project, they go into version control. Your team (or classmates) get the same specialists when they pull the repo.</li>
+        <li><strong>Reuse personal subagents across projects.</strong> When you find a subagent definition you love, save it to <code>~/.claude/agents/</code> instead of <code>.claude/agents/</code>. It'll be available in every project on your machine.</li>
+        <li><strong>Iterate on the prompt.</strong> Open the .md file in VS Code, edit the system prompt, save, restart Claude Code. The fastest way to improve a subagent is to refine its definition based on the actual output it produces.</li>
+      </ul>
+    </section>
+
+    <!-- REFERENCE -->
+    <section class="section" id="reference">
+      <div class="sec-header">
+        <div class="sec-num">8</div>
+        <div>
+          <span class="sec-eyebrow">Reference</span>
+          <h2 class="sec-title">Quick Reference</h2>
+        </div>
+      </div>
+
+      <p><strong>Create folder for project subagents:</strong></p>
+      <pre><code>mkdir -p .claude/agents</code></pre>
+
+      <p><strong>Create one interactively:</strong></p>
+      <pre><code>claude
+/agents
+→ Library → Create new agent → Project</code></pre>
+
+      <p><strong>List all available subagents:</strong></p>
+      <pre><code>/agents</code></pre>
+
+      <p><strong>Invoke a subagent:</strong></p>
+      <pre><code>Use the researcher subagent to...
+@researcher (agent) investigate...
+claude --agent strategist (whole session)</code></pre>
+
+      <p><strong>Subagent file location:</strong></p>
+      <pre><code>.claude/agents/&lt;name&gt;.md   (project)
+~/.claude/agents/&lt;name&gt;.md (personal, all projects)</code></pre>
+
+      <p><strong>Reload after editing a file:</strong></p>
+      <pre><code>/exit, then claude</code></pre>
+    </section>
+
+    <!-- NEXT LAB -->
+    <section class="section" style="border-top: 2px solid var(--accent); padding: 3rem 4rem; background: var(--accent-soft);">
+      <p style="font-size: 1.05rem; color: var(--ink-2); margin-bottom: 1.5rem;">Want to see subagents and agent teams side by side?</p>
+      <a href="https://inakigorostiza.github.io/subagents-agent-teams-concepts-lab/" style="display: inline-block; background: var(--accent); color: white; padding: 0.75rem 1.75rem; text-decoration: none; border-radius: 4px; font-weight: 600; margin-top: 0.5rem; transition: background var(--trans);">Concepts & Decision Framework →</a>
+    </section>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      Created for the Labs Platform · <a href="https://github.com/inakigorostiza/subagents-marketing-lab" target="_blank">View on GitHub</a>
+    </div>
+
+  </main>
+</div>
+
+</body>
+</html>
